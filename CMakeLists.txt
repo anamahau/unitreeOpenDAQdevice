@@ -4,6 +4,11 @@ set(REPO_OPTION_PREFIX EXAMPLE_MODULE)
 
 project(${REPO_NAME} VERSION 1.0.0)
 
+find_package(CycloneDDS REQUIRED)
+find_package(CycloneDDS-CXX REQUIRED)
+message(STATUS "CycloneDDS config: ${CycloneDDS_DIR}")
+message(STATUS "CycloneDDS-CXX config: ${CycloneDDS-CXX_DIR}")
+
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
