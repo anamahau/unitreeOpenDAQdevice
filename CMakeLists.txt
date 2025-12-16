@@ -4,8 +4,6 @@ set(REPO_OPTION_PREFIX EXAMPLE_MODULE)
 
 project(${REPO_NAME} VERSION 1.0.0)
 
-find_package(helloworld_unitree)
-
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
@@ -33,8 +31,7 @@ if(OPENDAQ_DEVICE_EXAMPLE_ENABLE_SERVER_APP)
 endif()
 
 add_subdirectory(external)
-add_subdirectory(example_module)
-add_subdirectory(unitree_module)
+add_subdirectory(unitree_module) # Means: go execute unitree_module/CMakeLists.txt
 
 if(OPENDAQ_DEVICE_EXAMPLE_ENABLE_SERVER_APP)
 	message(STATUS "Enbled example server application")

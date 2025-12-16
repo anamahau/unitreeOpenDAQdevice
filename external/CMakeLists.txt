@@ -8,3 +8,4 @@ endif()
 include(FetchContent)
 
 add_subdirectory(openDAQ)
+add_subdirectory(cyclonedds) # Add cyclone as dependency
