@@ -1,19 +1,19 @@
-#include <unitree_module/unitree_channel.h>
-#include <opendaq/signal_factory.h>
-#include <opendaq/packet_factory.h>
-#include <fmt/format.h>
 #include <coreobjects/callable_info_factory.h>
-#include <opendaq/data_rule_factory.h>
 #include <coreobjects/unit_factory.h>
+#include <fmt/format.h>
+#include <opendaq/data_rule_factory.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/signal_factory.h>
+#include <unitree_module/unitree_channel.h>
 #include <chrono>
 
 BEGIN_NAMESPACE_UNITREE_MODULE
 
-ExampleChannel::ExampleChannel(const ContextPtr& context,
+UnitreeChannel::UnitreeChannel(const ContextPtr& context,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               const RefChannelInit& init)
-    : ChannelImpl(FunctionBlockType("ExampleChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
+                               const UnitreeChannelInit& init)
+    : ChannelImpl(FunctionBlockType("UnitreeChannel", fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , index(init.index)
     , startTime(init.startTime)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
@@ -26,37 +26,18 @@ ExampleChannel::ExampleChannel(const ContextPtr& context,
     buildSignalDescriptors();
 }
 
-void ExampleChannel::initProperties()
+void UnitreeChannel::initProperties()
 {
 }
 
-
-uint64_t ExampleChannel::getSamplesSinceStart(std::chrono::microseconds time) const
-{
-    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
-    return samplesSinceStart;
-}
-
-void ExampleChannel::collectSamples(std::chrono::microseconds curTime)
+void UnitreeChannel::publishSamples(std::chrono::microseconds curTime, std::vector<int16_t>& data)
 {
     auto lock = this->getAcquisitionLock();
 
-    const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
-    auto newSamples = samplesSinceStart - samplesGenerated;
-
-    if (newSamples > 0)
-    {
-        const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-        auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), newSamples);
-
-        valueSignal.sendPacket(std::move(dataPacket));
-        timeSignal.sendPacket(std::move(domainPacket));
-
-        samplesGenerated = samplesSinceStart;
-    }
+    // TODO
 }
 
-std::tuple<PacketPtr, PacketPtr> ExampleChannel::generateSamples(int64_t curTime, uint64_t newSamples)
+std::tuple<PacketPtr, PacketPtr> UnitreeChannel::generateSamples(int64_t curTime, uint64_t newSamples)
 {
     auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     DataPacketPtr dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
@@ -72,7 +53,7 @@ std::tuple<PacketPtr, PacketPtr> ExampleChannel::generateSamples(int64_t curTime
     return {dataPacket, domainPacket};
 }
 
-std::string ExampleChannel::getEpoch()
+std::string UnitreeChannel::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -82,19 +63,19 @@ std::string ExampleChannel::getEpoch()
     return { buf };
 }
 
-RatioPtr ExampleChannel::getResolution()
+RatioPtr UnitreeChannel::getResolution()
 {
     return Ratio(1, 1000000);
 }
 
-Int ExampleChannel::getDeltaT(const double sr) const
+Int UnitreeChannel::getDeltaT(const double sr) const
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / sr;
     return static_cast<Int>(std::round(samplePeriod / tickPeriod));
 }
 
-void ExampleChannel::buildSignalDescriptors()
+void UnitreeChannel::buildSignalDescriptors()
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volts", "voltage"));
 
@@ -124,20 +105,23 @@ void ExampleChannel::buildSignalDescriptors()
     timeSignal.setDescriptor(timeDescriptor.build());
 }
 
-void ExampleChannel::createSignals()
+void UnitreeChannel::createSignals()
 {
     valueSignal = createAndAddSignal(fmt::format("AI{}", index));
     timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
     valueSignal.setDomainSignal(timeSignal);
 
-    // forceFLsignal = createAndAddSignal(fmt::format("FL force"));
-    // forceFRsignal = createAndAddSignal(fmt::format("FR force"));
-    // forceRLsignal = createAndAddSignal(fmt::format("RL force"));
-    // forceRRsignal = createAndAddSignal(fmt::format("RR force"));
-    // forceFLsignal.setDomainSignal(timeSignal);
-    // forceFRsignal.setDomainSignal(timeSignal);
-    // forceRLsignal.setDomainSignal(timeSignal);
-    // forceRRsignal.setDomainSignal(timeSignal);
+    forceFLsignal = createAndAddSignal(fmt::format("FL force"));
+    forceFLsignal.setDomainSignal(timeSignal);
+
+    forceFRsignal = createAndAddSignal(fmt::format("FR force"));
+    forceFRsignal.setDomainSignal(timeSignal);
+
+    forceRLsignal = createAndAddSignal(fmt::format("RL force"));
+    forceRLsignal.setDomainSignal(timeSignal);
+
+    forceRRsignal = createAndAddSignal(fmt::format("RR force"));
+    forceRRsignal.setDomainSignal(timeSignal);
 }
 
 END_NAMESPACE_UNITREE_MODULE
