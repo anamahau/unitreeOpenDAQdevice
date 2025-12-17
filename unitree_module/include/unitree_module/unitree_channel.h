@@ -59,7 +59,6 @@ private:
     void buildSignalDescriptors();
 
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
-    std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t newSamples);
     [[nodiscard]] Int getDeltaT(const double sr) const;
 
     uint64_t deltaT;
@@ -74,7 +73,6 @@ private:
     double sampleRate;
 
     SignalConfigPtr timeSignal;
-    SignalConfigPtr valueSignal;
 
     SignalConfigPtr forceFLsignal;
     SignalConfigPtr forceFRsignal;
