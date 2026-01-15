@@ -52,21 +52,59 @@ UnitreeDevice::UnitreeDevice(const ContextPtr& ctx, const ComponentPtr& parent)
     this->loggerComponent = ctx.getLogger().getOrAddComponent(UNITREE_MODULE_NAME);
     initDomain();
     initChannels();
+    std::cout << "creating device\n";
+
+    /****************************************/
+    // https://github.com/unitreerobotics/unitree_sdk2/blob/main/example/go2/go2_low_level.cpp
+    // ChannelSubscriberPtr<unitree_go::msg::dds_::LowState_> lowstate_subscriber;
+    /****************************************/
 
     /****************************************/
     // Unitree DDS
     dds::domain::DomainParticipant participant(0);
     dds::topic::Topic<SensorDataListener::MsgType> topic(participant, SensorDataListener::GetTopicName());
+    // dds::topic::Topic<SensorDataListener::MsgType> topic(participant, "rt/lowstate");
     dds::sub::Subscriber subscriber(participant);
 
     dds::sub::DataReader<SensorDataListener::MsgType> reader(
         subscriber,
         topic,
         subscriber.default_datareader_qos(),
-        new SensorDataListener([this](std::vector<int16_t>&& data) { this->forwardDataCallback(std::move(data)); }),
-        dds::core::status::StatusMask::data_available());
-    std::cout << "Listening for Unitree Go2 sensor data on topic '" << SensorDataListener::GetTopicName() << "'..." << std::endl;
+        new SensorDataListener([this](std::vector<int16_t>&& data) {
+            std::cout << "cyclone callback\n";
+            this->forwardDataCallback(std::move(data)); }),
+        // new SensorDataListener(),
+        dds::core::status::StatusMask::data_available()
+    );
     /****************************************/
+
+    /****************************************/
+    // ChatGPT generated
+    /*dds::domain::DomainParticipant participant(0);
+    dds::topic::Topic<unitree_go::msg::dds_::LowState_> topic(participant, "rt/lowstate");
+    std::cout << "Topic type: " << topic.type_name() << std::endl;
+    dds::sub::Subscriber subscriber(participant);
+    SensorDataListener listener(
+        [this](std::vector<int16_t>&& data) {
+            this->forwardDataCallback(std::move(data));
+        }
+    );
+    // Set QoS explicitly to match Unitree publisher
+    dds::sub::qos::DataReaderQos qos;
+    qos << dds::core::policy::Reliability::BestEffort()
+        << dds::core::policy::Durability::Volatile()
+        << dds::core::policy::History::KeepLast(1);
+    // Create the DataReader with listener
+    dds::sub::DataReader<SensorDataListener::MsgType> reader(
+        subscriber,
+        topic,
+        qos,
+        &listener,
+        dds::core::status::StatusMask::data_available()
+    );*/
+    /****************************************/
+    std::cout << "SensorDataListener::GetTopicName(): " << SensorDataListener::GetTopicName() << std::endl;
+    std::cout << "Listening for Unitree Go2 sensor data on topic '" << SensorDataListener::GetTopicName() << "'..." << std::endl;
 }
 
 UnitreeDevice::~UnitreeDevice()
